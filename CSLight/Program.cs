@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace ConsoleApp1
 {
@@ -6,134 +10,192 @@ namespace ConsoleApp1
     {
         static void Main(string[] args)
         {
-            const string ButtonAttack = "1";
-            const string ButtonFireBall = "2";
-            const string ButtonExplosion = "3";
-            const string ButtonHeal = "4";
+            int a = -15;
+            long b = long.MaxValue;
 
+            a = (int)b;
+
+            Console.WriteLine(a);
+            
+            ComputerClub computerClub = new ComputerClub(8);
+            computerClub.Work();
+        }
+    }
+
+    class ComputerClub
+    {
+        private int _money = 0;
+        private List<Computer> _computers = new List<Computer>();
+        private Queue<Client> _clients = new Queue<Client>();
+
+        public ComputerClub(int computersCount)
+        {
             Random random = new Random();
-            int lowLimitRandom = 1;
-            int highLimitRandom = 5;
 
-            int hitPointsBoss = 100;
-            int damageBoss;
-
-            int maxHitPointsPlayer = 10;
-            int maxManaPlayer = 10;
-            int hitPointsPlayer = 10;
-            int manaPlayer = 10;
-            int damagePlayer = 10;
-            int damageFireBall = 20;
-            int manaFireBall = 3;
-            int damageExplosion = 30;
-            int heal = 5;
-            int pointsHeal = 3;
-
-            string newTurn = null;
-
-            while (hitPointsPlayer > 0 && hitPointsBoss > 0)
+            for (int i = 0; i < computersCount; i++)
             {
-                damageBoss = random.Next(lowLimitRandom, highLimitRandom + 1);
-                Console.WriteLine($"Р‘РѕСЃСЃ РЅР°РЅРѕСЃРёС‚ РІР°Рј {damageBoss} СѓСЂРѕРЅР°\n" +
-                    "РЈ РІР°СЃ РѕСЃС‚Р°Р»РѕСЃСЊ: " + (hitPointsPlayer -= damageBoss));
+                _computers.Add(new Computer(random.Next(5, 15)));
+            }
 
-                if (hitPointsPlayer > 0 && hitPointsBoss > 0)
+            CreateNewClients(25, random);
+        }
+
+        public void CreateNewClients(int count, Random random)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                _clients.Enqueue(new Client(random.Next(100, 251), random));
+            }
+        }
+
+        public void Work()
+        {
+            while (_clients.Count > 0)
+            {
+                Client newClient = _clients.Dequeue();
+                Console.WriteLine($"Баланс компьютерного клуба {_money} руб. Ждем нового клиента.");
+                Console.WriteLine($"У вас новый клиент, и он хочет купить {newClient.DesiredMinutes} минут.");
+                ShowAllComputersState();
+
+                Console.Write("\nВы предлагаете ему компьютер под номером: ");
+                string userInput = Console.ReadLine();
+
+                if (int.TryParse(userInput, out int computerNumber))
                 {
-                    Console.WriteLine("Р’Р°С€ С…РѕРґ:");
-                    string lastTurn = newTurn;
-                    newTurn = Console.ReadLine();
+                    computerNumber -= 1;
 
-                    switch (newTurn)
+                    if (computerNumber >= 0 && computerNumber < _computers.Count)
                     {
-                        case ButtonAttack:
-                            hitPointsBoss -= damagePlayer;
-                            break;
-
-                        case ButtonFireBall:
-                            if (manaPlayer - manaFireBall > 0)
+                        if (_computers[computerNumber].IsTaken)
+                        {
+                            Console.WriteLine("Вы пытаетесь посадить клиента за компьютер, который уже занят. Клиент разозлился и ушёл.");
+                        }
+                        else
+                        {
+                            if (newClient.CheckSolvency(_computers[computerNumber]))
                             {
-                                manaPlayer -= manaFireBall;
-                                hitPointsBoss -= damageFireBall;
-                            }
-
-                            break;
-
-                        case ButtonExplosion:
-
-                            if (lastTurn == ButtonFireBall)
-                            {
-                                hitPointsBoss -= damageExplosion;
+                                Console.WriteLine("Клиент пересчитал деньги и сел за компьютер " + (computerNumber + 1));
+                                _money += newClient.Pay();
+                                _computers[computerNumber].BecomeTaken(newClient);
                             }
                             else
                             {
-                                Console.WriteLine("Р’ РїСЂРѕС€Р»РѕРј С…РѕРґСѓ РІС‹ РЅРµ РёСЃРїРѕР»СЊР·РѕРІР°Р»Рё РћРіРЅРµРЅРЅС‹Р№ С€Р°СЂ," +
-                                    "РїРѕСЌС‚РѕРјСѓ РЅРµ РјРѕР¶РµС‚Рµ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РІР·СЂС‹РІ Рё РїСЂРѕРїСѓСЃРєР°РµС‚Рµ С…РѕРґ.");
+                                Console.WriteLine("У клиента не хватило денег и он ушёл.");
                             }
-
-                            break;
-
-                        case ButtonHeal:
-
-                            if (pointsHeal > 0)
-                            {
-                                hitPointsPlayer += heal;
-
-                                if (hitPointsPlayer > maxHitPointsPlayer)
-                                {
-                                    hitPointsPlayer = maxHitPointsPlayer;
-                                }
-
-                                manaPlayer += heal;
-
-                                if (manaPlayer > maxManaPlayer)
-                                {
-                                    manaPlayer = maxManaPlayer;
-                                }
-
-                                pointsHeal--;
-                                Console.WriteLine("РЈ РІР°СЃ Р·Р°РєРѕРЅС‡РёР»СЃСЏ РїРѕРґРѕСЂРѕР¶РЅРёРє. Р’С‹ Р±РѕР»СЊС€Рµ РЅРµ РјРѕР¶РµС‚Рµ С…РёР»РёС‚СЃСЏ.");
-                            }
-
-                            break;
-
-                        default:
-                            Console.WriteLine("Р’С‹ РѕС€РµР»РѕРјР»РµРЅС‹ РјРѕС‰СЊСЋ BossOfTheGym Рё РїСЂРѕРїСѓСЃРєР°РµС‚Рµ С…РѕРґ.");
-                            break;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Вы сами не знаете за какой компьютер посадить клиента. Он разозлился и ушёл.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Р’С‹ СѓРјРµСЂР»Рё");
-                    break;
+                    CreateNewClients(1, new Random());
+                    Console.WriteLine("Неверный ввод! Повторите снова.");
                 }
-            }
 
-            if (hitPointsBoss > 0)
-            {
-                Console.WriteLine("Р’С‹ РїСЂРѕРёРіСЂР°Р»Рё.");
-                Console.WriteLine("hitPointsPlayer = " + hitPointsPlayer);
-                Console.WriteLine("hitPointsBoss = " + hitPointsBoss);
+                Console.WriteLine("Чтобы перейти к следующему клиенту, нажмите любую клавишу.");
+                Console.ReadKey();
+                Console.Clear();
+                SpendOneMinutes();
             }
-            else if (hitPointsPlayer > 0)
+        }
+
+        private void ShowAllComputersState()
+        {
+            Console.WriteLine("\nСписок всех компьютеров:");
+            for (int i = 0; i < _computers.Count; i++)
             {
-                Console.WriteLine("Р’С‹ РІС‹РёРіСЂР°Р»Рё");
-                Console.WriteLine("hitPointsPlayer = " + hitPointsPlayer);
-                Console.WriteLine("hitPointsBoss = " + hitPointsBoss);
+                Console.Write(i + 1 + " - ");
+                _computers[i].ShowState();
             }
-            else if (hitPointsPlayer == hitPointsBoss)
+        }
+
+        private void SpendOneMinutes()
+        {
+            foreach (var computer in _computers)
             {
-                Console.WriteLine("РќРёС‡СЊСЏ");
-                Console.WriteLine("hitPointsPlayer = " + hitPointsPlayer);
-                Console.WriteLine("hitPointsBoss = " + hitPointsBoss);
+                computer.SpendOneMinute(); 
+            }
+        }
+    }
+
+    class Computer
+    {
+        private Client _client;
+        private int _minutesRemaining;
+        public bool IsTaken
+        {
+            get
+            {
+                return _minutesRemaining > 0;
+            }
+        }
+
+        public int PricePerMinute { get; private set; }
+
+        public Computer(int pricePerMinute)
+        {
+            PricePerMinute = pricePerMinute;
+        }
+
+        public void BecomeTaken(Client client)
+        {
+            _client = client;
+            _minutesRemaining = _client.DesiredMinutes;
+        }
+
+        public void BecomeEmpty()
+        {
+            _client = null;
+        }
+
+        public void SpendOneMinute()
+        {
+            _minutesRemaining--;
+        }
+
+        public void ShowState()
+        {
+            if (IsTaken)
+                Console.WriteLine($"Компьютер занят, осталось минут: {_minutesRemaining}");
+            else
+                Console.WriteLine($"Компьютер свободен. Цена за минуту: {PricePerMinute}");
+        }
+    }
+
+    class Client
+    {
+        private int _money;
+        private int _moneyToPay;
+
+        public int DesiredMinutes { get; private set; }
+
+        public Client(int money, Random random)
+        {
+            _money = money;
+            DesiredMinutes = random.Next(10, 30);
+        }
+
+        public bool CheckSolvency(Computer computer)
+        {
+            _moneyToPay = DesiredMinutes * computer.PricePerMinute;
+            if (_money >= _moneyToPay)
+            {
+                return true;
             }
             else
             {
-                Console.WriteLine("РћС€РёР±РєР°!!!");
-                Console.WriteLine("hitPointsPlayer = " + hitPointsPlayer);
-                Console.WriteLine("hitPointsBoss = " + hitPointsBoss);
+                _moneyToPay = 0;
+                return false;
             }
+        }
 
-            Console.WriteLine("Р­С‚Рѕ РєРѕРЅРµС†");
+        public int Pay()
+        {
+            _money -= _moneyToPay;
+            return _moneyToPay;
         }
     }
 }
